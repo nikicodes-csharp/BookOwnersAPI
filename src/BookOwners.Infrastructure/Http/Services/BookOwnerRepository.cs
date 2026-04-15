@@ -34,7 +34,7 @@ public sealed class BookOwnerRepository : IBookOwnerRepository
 
     public async Task<IReadOnlyList<BookOwner>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        // Always cache raw owners, filtering is done by BookGroupingService
+        // Return cached raw owners immediately, filtering is done by BookGroupingService
         if (_cache.TryGetValue(CacheKey, out IReadOnlyList<BookOwner>? cached) && cached is { Count: > 0 })
         {
             _logger.LogInformation("Returning {Count} book owners from cache", cached.Count);
@@ -55,7 +55,7 @@ public sealed class BookOwnerRepository : IBookOwnerRepository
                 if (string.IsNullOrWhiteSpace(content))
                 {
                     _logger.LogWarning("Upstream API returned empty body on attempt {Attempt}", attempt);
-                    await RetryDelayIfNotLast(attempt, cancellationToken);
+                    await DelayIfNotLast(attempt, cancellationToken);
                     continue;
                 }
 
@@ -64,7 +64,7 @@ public sealed class BookOwnerRepository : IBookOwnerRepository
                 if (apiModels.Count == 0)
                 {
                     _logger.LogWarning("Upstream API returned empty list on attempt {Attempt}", attempt);
-                    await RetryDelayIfNotLast(attempt, cancellationToken);
+                    await DelayIfNotLast(attempt, cancellationToken);
                     continue;
                 }
 
@@ -72,7 +72,7 @@ public sealed class BookOwnerRepository : IBookOwnerRepository
 
                 // Validate both age categories are present before caching.
                 // The upstream Bupa API occasionally returns partial data (e.g. only Children owners).
-                // Caching incomplete data would cause one category to disappear until the cache expires.
+                // Caching incomplete data would cause one category to disappear until cache expires.
                 var hasAdults = owners.Any(o => o.AgeCategory == AgeCategory.Adults);
                 var hasChildren = owners.Any(o => o.AgeCategory == AgeCategory.Children);
 
@@ -82,7 +82,7 @@ public sealed class BookOwnerRepository : IBookOwnerRepository
                         "Upstream API returned incomplete data on attempt {Attempt} " +
                         "(Adults: {HasAdults}, Children: {HasChildren}) — retrying",
                         attempt, hasAdults, hasChildren);
-                    await RetryDelayIfNotLast(attempt, cancellationToken);
+                    await DelayIfNotLast(attempt, cancellationToken);
                     continue;
                 }
 
@@ -97,16 +97,16 @@ public sealed class BookOwnerRepository : IBookOwnerRepository
             catch (HttpRequestException ex) when (attempt < MaxRetries)
             {
                 _logger.LogWarning(ex, "Attempt {Attempt} failed with HTTP error, retrying...", attempt);
-                await Task.Delay(TimeSpan.FromSeconds(attempt), cancellationToken);
+                await DelayIfNotLast(attempt, cancellationToken);
             }
             catch (JsonException ex) when (attempt < MaxRetries)
             {
                 _logger.LogWarning(ex, "Attempt {Attempt} failed with JSON parse error, retrying...", attempt);
-                await Task.Delay(TimeSpan.FromSeconds(attempt), cancellationToken);
+                await DelayIfNotLast(attempt, cancellationToken);
             }
         }
 
-        // All retries exhausted, serve stale cache if available rather than returning empty
+        // All retries exhausted, serve stale cache if available
         if (_cache.TryGetValue(CacheKey, out IReadOnlyList<BookOwner>? stale) && stale is { Count: > 0 })
         {
             _logger.LogWarning("Upstream API unreliable, serving stale cache ({Count} owners)", stale.Count);
@@ -117,7 +117,7 @@ public sealed class BookOwnerRepository : IBookOwnerRepository
         return [];
     }
 
-    private async Task RetryDelayIfNotLast(int attempt, CancellationToken cancellationToken)
+    private static async Task DelayIfNotLast(int attempt, CancellationToken cancellationToken)
     {
         if (attempt < MaxRetries)
             await Task.Delay(TimeSpan.FromSeconds(attempt), cancellationToken);
