@@ -1,0 +1,14 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.log
+*.trx
+TestResults/
+.idea/
+.vscode/
+*.pfx
+*.pem
+appsettings.*.local.json
+secrets.json
