@@ -40,18 +40,13 @@ API available at: `http://localhost:8080`
 dotnet test
 ```
 
-### Run tests with coverage
-```bash
-dotnet test --collect:"XPlat Code Coverage"
-```
-
 ---
 
 ## Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/v1/books` | All books grouped by age category, sorted A–Z |
+| `GET` | `/api/v1/books` | All books grouped by age category, sorted A-Z |
 | `GET` | `/api/v1/books?hardcoverOnly=true` | Hardcover books only |
 | `GET` | `/health` | Health check |
 | `GET` | `/` | Swagger UI (Development only) |
@@ -169,7 +164,7 @@ The Domain and Application layers have zero knowledge of ASP.NET Core, HTTP, or 
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `BupaApi:BaseUrl` | `https://digitalcodingtest.bupa.com.au/` | Upstream API base URL — trailing slash required |
+| `BupaApi:BaseUrl` | `https://digitalcodingtest.bupa.com.au/` | Upstream API base URL |
 
 Override in Docker via environment variable (double underscore for section nesting):
 ```
@@ -182,7 +177,7 @@ BupaApi__BaseUrl=https://digitalcodingtest.bupa.com.au/
 
 ### Unit Tests
 
-Tests business logic in complete isolation — no network calls, no ASP.NET Core.
+Tests business logic in complete isolation --> no network calls, no ASP.NET Core.
 
 | Test class | Coverage |
 |------------|----------|
@@ -212,12 +207,12 @@ Tools: **NUnit** · **WireMock.Net** · **WebApplicationFactory** · **FluentAss
 
 ## Security Considerations
 
-- **Non-root Docker user** — container runs as `appuser`, not root (principle of least privilege)
-- **No secrets in source** — `BupaApi:BaseUrl` is config; sensitive values go in environment variables
-- **Stack traces never exposed** — `GlobalExceptionHandlerMiddleware` returns a clean JSON error body for all exceptions
-- **Nullable reference types** — `<Nullable>enable</Nullable>` catches null dereference at compile time
-- **Warnings as errors** — `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` prevents warning accumulation
-- **HttpClient timeout** — 30s timeout prevents thread exhaustion if upstream hangs
+- **Non-root Docker user** --> container runs as `appuser`, not root (principle of least privilege)
+- **No secrets in source** --> `BupaApi:BaseUrl` is config; sensitive values go in environment variables
+- **Stack traces never exposed** --> `GlobalExceptionHandlerMiddleware` returns a clean JSON error body for all exceptions
+- **Nullable reference types** --> `<Nullable>enable</Nullable>` catches null dereference at compile time
+- **Warnings as errors** --> `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` prevents warning accumulation
+  - **HttpClient timeout** --> 30s timeout prevents thread exhaustion if upstream hangs
 - **CORS configured** — explicit policy in `Program.cs` controls cross-origin access
 
 ---
@@ -234,11 +229,11 @@ dotnet restore → dotnet build → unit tests → integration tests → docker 
 
 ## Assumptions
 
-1. **Duplicate titles are not deduplicated** — if two adults both own "Hamlet", it appears twice in the Adults group (one entry per owner copy).
-2. **Unknown book types default to Paperback** — if the upstream API returns an unrecognised `type` value, it is treated as Paperback.
-3. **Age boundary is inclusive at 18** — exactly age 18 = Adult; exactly age 17 = Child, per the spec ("18 and above" / "17 and below").
-4. **Empty groups are omitted** — if a filter leaves a category with no books, that category does not appear in the response.
-5. **Sorting is case-insensitive** — "the Hobbit" sorts identically to "The Hobbit".
-6. **Upstream API is read-only** — no write operations are made to `digitalcodingtest.bupa.com.au`.
-7. **No authentication on upstream API** — the Bupa coding test endpoint is open. If auth were added it would be handled via a delegating handler on the `HttpClient`.
-8. **In-memory cache used** — in a production multi-instance deployment this would be replaced with a distributed cache (e.g. Redis) with a TTL.
+1. **Duplicate titles are not deduplicated** --> if two adults both own "Hamlet", it appears twice in the Adults group (one entry per owner copy).
+2. **Unknown book types default to Paperback** --> if the upstream API returns an unrecognised `type` value, it is treated as Paperback.
+3. **Age boundary is inclusive at 18** --> exactly age 18 = Adult; exactly age 17 = Child, per the spec ("18 and above" / "17 and below").
+4. **Empty groups are omitted** --> if a filter leaves a category with no books, that category does not appear in the response.
+5. **Sorting is case-insensitive** --> "the Hobbit" sorts identically to "The Hobbit".
+6. **Upstream API is read-only** --> no write operations are made to `digitalcodingtest.bupa.com.au`.
+7. **No authentication on upstream API** --> the Bupa coding test endpoint is open. If auth were added it would be handled via a delegating handler on the `HttpClient`.
+8. **In-memory cache used** --> in a production multi-instance deployment this would be replaced with a distributed cache (e.g. Redis) with a TTL.
